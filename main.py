@@ -171,8 +171,10 @@ def delete_lesson(
     }
 
 
-app.mount(
-    "/",
-    StaticFiles(directory="static", html=True),
-    name="static"
-)
+from fastapi.responses import FileResponse
+
+@app.get("/")
+def home():
+    return FileResponse("static/index.html")
+
+
