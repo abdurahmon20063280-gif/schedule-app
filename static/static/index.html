@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Расписание</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: white;
+            padding: 28px 20px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 5px 20px rgba(0,0,0,.06);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #d6dce8;
+            font-size: 15px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .submit {
+            grid-column: 1 / -1;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .delete {
+            background: #ef4444;
+            padding: 8px 12px;
+            width: auto;
+        }
+
+        .delete:hover {
+            background: #dc2626;
+        }
+
+        @media (max-width: 700px) {
+            form {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            .table-wrapper {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="container">
+        <h1>📚 Система расписания</h1>
+        <p>Добавление занятий и автоматическая проверка коллизий</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Добавить занятие</h2>
+
+        <form id="lessonForm">
+
+            <input
+                id="subject"
+                placeholder="Название предмета"
+                required
+            >
+
+            <input
+                id="group_name"
+                placeholder="Группа"
+                required
+            >
+
+            <input
+                id="professor_id"
+                type="number"
+                placeholder="ID преподавателя"
+                required
+            >
+
+            <input
+                id="room_id"
+                type="number"
+                placeholder="Номер аудитории"
+                required
+            >
+
+            <select id="day" required>
+                <option value="">День недели</option>
+                <option value="1">Понедельник</option>
+                <option value="2">Вторник</option>
+                <option value="3">Среда</option>
+                <option value="4">Четверг</option>
+                <option value="5">Пятница</option>
+                <option value="6">Суббота</option>
+            </select>
+
+            <select id="period" required>
+                <option value="">Номер пары</option>
+                <option value="1">1 пара</option>
+                <option value="2">2 пара</option>
+                <option value="3">3 пара</option>
+                <option value="4">4 пара</option>
+                <option value="5">5 пара</option>
+                <option value="6">6 пара</option>
+            </select>
+
+            <select id="week_type" required>
+                <option value="">Тип недели</option>
+                <option value="odd">Нечётная</option>
+                <option value="even">Чётная</option>
+            </select>
+
+            <button class="submit" type="submit">
+                ➕ Добавить занятие
+            </button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <div class="card">
+        <h2>Расписание</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Предмет</th>
+                        <th>Группа</th>
+                        <th>Преподаватель</th>
+                        <th>Аудитория</th>
+                        <th>День</th>
+                        <th>Пара</th>
+                        <th>Неделя</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="schedule"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const form = document.getElementById("lessonForm");
+const message = document.getElementById("message");
+const schedule = document.getElementById("schedule");
+
+const days = {
+    1: "Пн",
+    2: "Вт",
+    3: "Ср",
+    4: "Чт",
+    5: "Пт",
+    6: "Сб"
+};
+
+const weeks = {
+    odd: "Нечётная",
+    even: "Чётная"
+};
+
+
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = "message " + type;
+}
+
+
+async function loadSchedule() {
+    const response = await fetch("/api/schedule");
+    const lessons = await response.json();
+
+    schedule.innerHTML = "";
+
+    if (lessons.length === 0) {
+        schedule.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center">
+                    Расписание пока пустое
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    lessons.forEach(lesson => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${escapeHtml(lesson.subject)}</td>
+            <td>${escapeHtml(lesson.group_name)}</td>
+            <td>${lesson.professor_id}</td>
+            <td>${lesson.room_id}</td>
+            <td>${days[lesson.day]}</td>
+            <td>${lesson.period}</td>
+            <td>${weeks[lesson.week_type]}</td>
+            <td>
+                <button
+                    class="delete"
+                    onclick="deleteLesson(${lesson.id})"
+                >
+                    Удалить
+                </button>
+            </td>
+        `;
+
+        schedule.appendChild(row);
+    });
+}
+
+
+form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const data = {
+        subject: document.getElementById("subject").value,
+        group_name: document.getElementById("group_name").value,
+        professor_id: Number(
+            document.getElementById("professor_id").value
+        ),
+        room_id: Number(
+            document.getElementById("room_id").value
+        ),
+        day: Number(
+            document.getElementById("day").value
+        ),
+        period: Number(
+            document.getElementById("period").value
+        ),
+        week_type: document.getElementById("week_type").value
+    };
+
+    const response = await fetch("/api/schedule", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        showMessage(result.detail, "error");
+        return;
+    }
+
+    showMessage(result.message, "success");
+
+    form.reset();
+
+    await loadSchedule();
+});
+
+
+async function deleteLesson(id) {
+    if (!confirm("Удалить это занятие?")) {
+        return;
+    }
+
+    const response = await fetch(
+        `/api/schedule/${id}`,
+        {
+            method: "DELETE"
+        }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        alert(result.detail);
+        return;
+    }
+
+    await loadSchedule();
+}
+
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+loadSchedule();
+</script>
+
+</body>
+</html>
